@@ -1,0 +1,37 @@
+ignorePatterns: 
+  - test/fixtures/*/source
+  - test/fixtures/react
+  - build
+
+parser: '@typescript-eslint/parser'
+plugins: 
+  - '@typescript-eslint'
+extends: 
+  - nth
+  - plugin:@typescript-eslint/recommended
+
+rules:
+  # Is there a case where no-unused-vars doesn't cover this?
+  '@typescript-eslint/no-unused-vars': off
+
+  'no-magic-numbers': off
+  '@typescript-eslint/no-magic-numbers': ["warn", {"ignoreReadonlyClassProperties": true, "ignore": [0, 1, 2], "ignoreTypeIndexes": true}]
+
+  # I don't use @ts comments frivolously.
+  '@typescript-eslint/ban-ts-comment': off
+
+  'no-use-before-define': ["error", { "functions": false, "variables": true }] 
+
+  no-trailing-spaces: warn
+
+  # Disable style rules to let prettier own it
+  object-curly-spacing: off
+  comma-dangle: off
+  max-len: off
+  indent: off
+  # Slightly spooky
+  no-mixed-operators: off
+
+env:
+  es6: true
+  node: true

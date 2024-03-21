@@ -1,0 +1,1915 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TS compilation flags Omitting rootDir from tsconfig causes an error 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = 'replace with file name';",
+  "source/change-string-literal-1.js": "const a = 'replace with file name';",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => {
+  return a?.b?.c?.d
+};
+
+
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+
+let x = 1; /* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return (
+    true || false
+  )
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => function(g, h) {
+  return i;
+};",
+  "source/ts.ts": "function g(
+  a: string,
+  b: number,
+  c: boolean
+) {
+  return 0;
+}
+
+const f = () => {
+  return 1
+};",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`TS compilation flags Omitting rootDir from tsconfig causes an error 2`] = `
+[
+  {
+    "durationMs": 117,
+    "err": {
+      "tsconfig": {
+        "compilerOptions": {
+          "esModuleInterop": true,
+          "forceConsistentCasingInFileNames": true,
+          "module": "commonjs",
+          "moduleResolution": "node",
+          "noFallthroughCasesInSwitch": true,
+          "noImplicitReturns": true,
+          "noUnusedLocals": true,
+          "noUnusedParameters": true,
+          "outDir": "should-be-ignored",
+          "skipLibCheck": true,
+          "strict": true,
+          "target": "ES2019",
+        },
+        "include": [
+          "codemod/*.ts",
+        ],
+      },
+      "tsconfigPath": "tsconfig-no-root-dir.json",
+    },
+    "hostname": "<hostname placeholder>",
+    "level": 50,
+    "msg": "Your tsconfig must set compilerOptions.rootDir so jscodemod can find the compiled output.",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 30,
+    "msg": "If you need help, please see this project's README, or the --help output. If you're filing a bug report, please re-run this command with env var 'loglevel=debug', and provide the full output.",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+]
+`;
+
+exports[`TS compilation flags Path to TSC is specified 1`] = `
+{
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+
+// Compiling this will not work automatically, because no TSC will be found.
+
+const codemod: Codemod = {
+  transform({source}) {
+    return \`/* prefix no-tsc */\\n\${source}\`;
+  }
+};
+
+export default codemod;",
+  "input.js": "/* prefix no-tsc */
+module.exports = {
+  input: 'file'
+};",
+}
+`;
+
+exports[`TS compilation flags Specified tsconfig path 1`] = `
+{
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+
+// Compiling this will not work, because no TSC will be found.
+
+const codemod: Codemod = {
+  transform({source}) {
+    return \`/* prefix tsconfig-non-standard-location */\\n\${source}\`;
+  }
+};
+
+export default codemod;",
+  "configs/tsconfig.json": "{
+  "include": ["../codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "rootDir": "..",
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+  "input.js": "/* prefix tsconfig-non-standard-location */
+const file = 'asdf';",
+}
+`;
+
+exports[`error handling handles codemod codemod-unnamed.js (codemod-unnamed.js) throwing an error 1`] = `
+{
+  "codemod/codemod-named.js": "module.exports = {
+  name: 'my-codemod-name',
+  transform({filePath}) {
+    throw new Error(\`Error for: \${filePath}\`);
+  }
+};",
+  "codemod/codemod-unnamed.js": "module.exports = {
+  transform({filePath}) {
+    throw new Error(\`Error for: \${filePath}\`);
+  }
+};",
+  "source/a.js": "console.log('a');",
+  "source/b.js": "console.log('b');",
+}
+`;
+
+exports[`error handling handles codemod my-codemod-name (codemod-named.js) throwing an error 1`] = `
+{
+  "codemod/codemod-named.js": "module.exports = {
+  name: 'my-codemod-name',
+  transform({filePath}) {
+    throw new Error(\`Error for: \${filePath}\`);
+  }
+};",
+  "codemod/codemod-unnamed.js": "module.exports = {
+  transform({filePath}) {
+    throw new Error(\`Error for: \${filePath}\`);
+  }
+};",
+  "source/a.js": "console.log('a');",
+  "source/b.js": "console.log('b');",
+}
+`;
+
+exports[`getTransformedContentsOfSingleFile processes codemod ignored files 1`] = `
+"/* prefix prepend string */
+// codemod ignored"
+`;
+
+exports[`getTransformedContentsOfSingleFile processes ignorefile ignored files 1`] = `"transformed"`;
+
+exports[`getTransformedContentsOfSingleFile returns the contents of a single file 1`] = `
+"/* prefix prepend string */
+function b() {}"
+`;
+
+exports[`getTransformedContentsOfSingleFile throws an error if the codemod throws an error 1`] = `"Error: Error for: <git-root>/fixtures/will-throw-error/source/a.js"`;
+
+exports[`git Modify dirty files 1`] = `
+{
+  "codemod/codemod.js": "module.exports = {
+  ignore: 'dirty-transformed-by-second-codemod',
+  transform({source}) {
+    return \`/* prefix git dirty */\\n\${source}\`;
+  },
+  async postProcess(modifiedFiles, {jscodemod}) {
+    console.log(JSON.stringify({modifiedFiles}));
+    await jscodemod(
+      require.resolve('./second-codemod'),
+      {inputFilesPatterns: [require.resolve('../source/dirty-transformed-by-second-codemod')]}
+    );
+  }
+};",
+  "codemod/second-codemod.js": "module.exports = {
+  transform({source}) {
+    return \`/* prefix git dirty second codemod */\\n\${source}\`;
+  }
+};",
+  "git-ignored.js": "console.log('git ignored');
+",
+  "git-untracked.js": "// git untracked",
+  "source/dirty-transformed-by-second-codemod.js": "/* prefix git dirty second codemod */
+// Transformed by second codemod
+const y = 'dirty state';",
+  "source/dirty.js": "/* prefix git dirty */
+const x = 'dirty state';",
+  "source/nested-git-ignored.js": "console.log('nested git ignored');",
+  "source/unmodified.js": "/* prefix git dirty */
+const x = 'starting state';",
+}
+`;
+
+exports[`git Reset dirty files 1`] = `
+{
+  "codemod/codemod.js": "module.exports = {
+  ignore: 'dirty-transformed-by-second-codemod',
+  transform({source}) {
+    return \`/* prefix git dirty */\\n\${source}\`;
+  },
+  async postProcess(modifiedFiles, {jscodemod}) {
+    console.log(JSON.stringify({modifiedFiles}));
+    await jscodemod(
+      require.resolve('./second-codemod'),
+      {inputFilesPatterns: [require.resolve('../source/dirty-transformed-by-second-codemod')]}
+    );
+  }
+};",
+  "codemod/second-codemod.js": "module.exports = {
+  transform({source}) {
+    return \`/* prefix git dirty second codemod */\\n\${source}\`;
+  }
+};",
+  "git-ignored.js": "console.log('git ignored');
+",
+  "git-untracked.js": "// git untracked",
+  "source/dirty-transformed-by-second-codemod.js": "/* prefix git dirty second codemod */
+// Transformed by second codemod
+const y = 'starting state';",
+  "source/dirty.js": "/* prefix git dirty */
+const x = 'starting state';",
+  "source/nested-git-ignored.js": "console.log('nested git ignored');",
+  "source/unmodified.js": "/* prefix git dirty */
+const x = 'starting state';",
+}
+`;
+
+exports[`happy path --inputFileList 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "/* prefix prepend string */
+console.log('a');",
+  "source/b.js": "function b() {}",
+  "source/blank.js": "",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path All logging enabled 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "/* prefix prepend string */
+console.log('a');",
+  "source/b.js": "function b() {}",
+  "source/blank.js": "",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path All logging enabled 2`] = `
+[
+  {
+    "argv": {
+      "$0": "<git-root>/build/bin.js",
+      "_": [],
+      "b": 20,
+      "c": "codemod/codemod.js",
+      "codemod": "codemod/codemod.js",
+      "input-file-list": "input-file-list.txt",
+      "inputFileList": "input-file-list.txt",
+      "json-output": true,
+      "jsonOutput": true,
+      "l": "input-file-list.txt",
+      "p": false,
+      "piscina-lower-bound-inclusive": 20,
+      "piscinaLowerBoundInclusive": 20,
+      "porcelain": false,
+      "r": false,
+      "reset-dirty-input-files": false,
+      "resetDirtyInputFiles": false,
+    },
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodKeys": [
+      "ignore",
+      "postProcess",
+      "parseArgs",
+      "transform",
+    ],
+    "codemodName": "codemod.js",
+    "codemodPath": "<test-dir>/codemod/codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodIgnores": [
+      "/codemod-ignored/",
+      "input-file-list.txt",
+      "omitted-via-string-pattern",
+    ],
+    "codemodName": "codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "inputFilesBeforeIgnores": [
+      "source/a.js",
+      "source/codemod-ignored.js",
+    ],
+    "level": 20,
+    "msg": "Filtering input file patterns.",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodName": "codemod.js",
+    "count": 1,
+    "durationMs": 117,
+    "filesToModify": [
+      "<test-dir>/source/a.js",
+    ],
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "Found files to modify.",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodName": "codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "parsedArgs": {},
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodName": "codemod.js",
+    "durationMs": 117,
+    "gitRoot": null,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "action": "Codemod ready to start",
+    "codemod": "codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "timeSinceRunStart": 123,
+    "timeSinceRunStartPretty": "<placeholder timeSinceRunStartPretty>",
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Starting read file",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Completed read file",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Starting parse args",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Completed parse args",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Starting transform file",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 10,
+    "msg": "Completed transform file",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "sourceCodeFile": "<test-dir>/source/a.js",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "durationMsPretty": "<placeholder pretty ms duration>",
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "The first codemod worker to return has done so.",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "action": "modified",
+    "codeModified": true,
+    "durationMs": 117,
+    "error": null,
+    "fileContents": "<truncated file contents>",
+    "filePath": "<test-dir>/source/a.js",
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "meta": "meta for <test-dir>/source/a.js",
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "durationMs": 117,
+    "filePath": "<test-dir>/source/a.js",
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "Writing modified file",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodName": "codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "modifiedFiles": [
+      "<test-dir>/source/a.js",
+    ],
+    "msg": "Starting postProcess",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodName": "codemod.js",
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "modifiedFiles": [
+      "<test-dir>/source/a.js",
+    ],
+    "msg": "Completed postProcess",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+  {
+    "codemodMetaResults": [
+      {
+        "action": "modified",
+        "codeModified": true,
+        "error": null,
+        "fileContents": "/* prefix prepend string */
+console.log('a');",
+        "filePath": "<test-dir>/source/a.js",
+        "meta": "meta for <test-dir>/source/a.js",
+      },
+    ],
+    "durationMs": 117,
+    "hostname": "<hostname placeholder>",
+    "level": 20,
+    "msg": "",
+    "name": "jscodemod-coordinator",
+    "pid": 9001,
+    "prettyDuration": "<duration placeholder>",
+    "time": 2012-01-01T00:00:00.000Z,
+    "v": 0,
+  },
+]
+`;
+
+exports[`happy path Run the codemod from outside the fixture dir 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = "change-string-literal-0.js";",
+  "source/change-string-literal-1.js": "const a = "change-string-literal-1.js";",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => a?.b?.c?.d;
+
+
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+
+let x = 1;/* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return (
+    true || false
+  )
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => (function(g, h) {
+  return i;
+});",
+  "source/ts.ts": "function g(
+  a: string,
+  b: number,
+  c: boolean
+) {
+  return 0;
+}
+
+const f = () => 1;",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`happy path TS without manually specifying any of the args determining how to compile 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = "change-string-literal-0.js";",
+  "source/change-string-literal-1.js": "const a = "change-string-literal-1.js";",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => a?.b?.c?.d;
+
+
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+
+let x = 1;/* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return (
+    true || false
+  )
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => (function(g, h) {
+  return i;
+});",
+  "source/ts.ts": "function g(
+  a: string,
+  b: number,
+  c: boolean
+) {
+  return 0;
+}
+
+const f = () => 1;",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`happy path dry 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "console.log('a');",
+  "source/b.js": "function b() {}",
+  "source/blank.js": "",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path dry porcelain 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "console.log('a');",
+  "source/b.js": "function b() {}",
+  "source/blank.js": "",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path dry porcelain 2`] = `
+"<test-dir>/source/.dotfile.js
+<test-dir>/source/a.js
+<test-dir>/source/b.js
+<test-dir>/source/blank.js"
+`;
+
+exports[`happy path getPlugin calls astDidChange() but forgot to call willNotifyOnAstChange() 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = 'replace with file name';",
+  "source/change-string-literal-1.js": "const a = 'replace with file name';",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => {
+  return a?.b?.c?.d
+};
+
+
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+
+let x = 1; /* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return (
+    true || false
+  )
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => function(g, h) {
+  return i;
+};",
+  "source/ts.ts": "function g(
+  a: string,
+  b: number,
+  c: boolean
+) {
+  return 0;
+}
+
+const f = () => {
+  return 1
+};",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`happy path getPlugin pass generatorOpts useRecast = false 1`] = `
+{
+  "codemod/index.js": "const useRecast = process.env.USE_RECAST === 'true';
+
+const codemod = {
+  getPlugin: () => ({
+    useRecast,
+    plugin: () => ({
+      visitor: {
+        Identifier(path) {
+          path.node.name = path.node.name.split('').reverse().join('');
+        },
+        StringLiteral(path) {
+          path.node.value = path.node.value.split('').reverse().join('');
+        }
+      }
+    })
+  })
+};
+
+codemod.generatorOpts = useRecast ? {
+  quote: 'single'
+} : {
+  retainFunctionParens: true
+};
+
+module.exports = codemod;",
+  "input.js": "// Passing retainFunctionParens to babelTransformOptions.generatorOpts should result in these parens being kept.
+// If that option is not respected, these parens will be dropped.
+const noissepxEnoitcnuf = (function () {});
+
+// If useRecast = true, then this string literal should be formatted with single quotes, since the codemod
+// passes \`quote: 'single'\` to \`generatorOpts\`.
+const gnirts = "setouq elbuod htiw strats";
+eludom.stropxe = {
+  noissepxEnoitcnuf
+};",
+}
+`;
+
+exports[`happy path getPlugin pass generatorOpts useRecast = true 1`] = `
+{
+  "codemod/index.js": "const useRecast = process.env.USE_RECAST === 'true';
+
+const codemod = {
+  getPlugin: () => ({
+    useRecast,
+    plugin: () => ({
+      visitor: {
+        Identifier(path) {
+          path.node.name = path.node.name.split('').reverse().join('');
+        },
+        StringLiteral(path) {
+          path.node.value = path.node.value.split('').reverse().join('');
+        }
+      }
+    })
+  })
+};
+
+codemod.generatorOpts = useRecast ? {
+  quote: 'single'
+} : {
+  retainFunctionParens: true
+};
+
+module.exports = codemod;",
+  "input.js": "// Passing retainFunctionParens to babelTransformOptions.generatorOpts should result in these parens being kept.
+// If that option is not respected, these parens will be dropped.
+const noissepxEnoitcnuf = (function () {});
+
+// If useRecast = true, then this string literal should be formatted with single quotes, since the codemod
+// passes \`quote: 'single'\` to \`generatorOpts\`.
+const gnirts = 'setouq elbuod htiw strats';
+
+eludom.stropxe = {
+  noissepxEnoitcnuf
+};",
+}
+`;
+
+exports[`happy path getPlugin returns a meta 1`] = `
+"🔨 Writing "0" modified files
+🔨 Running postProcess for "0" modified files...
+{
+  "<test-dir>/source/a.js": 3,
+  "<test-dir>/source/b.js": 1,
+  "<test-dir>/source/c.js": 7
+}
+✅ postProcess done."
+`;
+
+exports[`happy path getPlugin sets useRecast = false 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = "new string literal";",
+  "source/change-string-literal-1.js": "const a = "new string literal";",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => a?.b?.c?.d;
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+let x = 1; /* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return true || false;
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => function (g, h) {
+  return i;
+};",
+  "source/ts.ts": "function g(a: string, b: number, c: boolean) {
+  return 0;
+}
+const f = () => 1;",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`happy path getPlugin uses the willNotifyOnAstChange API 1`] = `
+{
+  "codemod/do-not-use-recast.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: () => ({
+    plugin: ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} =>
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);
+            }
+          },
+          Literal(literalPath) {
+          // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral('new string literal'));
+              literalPath.skip();
+            }
+          }
+        }
+      }),
+    useRecast: false
+  }),
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "codemod/index.ts": "import {Codemod} from '@nick.heiner/jscodemod';
+import _ from 'lodash';
+import path from 'path';
+import * as BabelTypes from '@babel/types';
+import type {Visitor} from '@babel/traverse';
+
+// TODO is our intentional any type.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TODO = any;
+
+const codemod: Codemod = {
+  getPlugin: ({willNotifyOnAstChange, astDidChange, filePath}) => {
+    if (process.env.CALL_WILL_NOTIFY_ON_AST_CHANGE) {
+      willNotifyOnAstChange();
+    }
+
+    return ({types: t}: {types: typeof BabelTypes}): {visitor: Visitor<TODO>} => 
+      ({
+        visitor: {
+          ArrowFunctionExpression(path) {
+            if (t.isBlockStatement(path.node.body) && path.node.body.body.length === 1 &&
+                  t.isReturnStatement(path.node.body.body[0])) {
+
+              if (process.env.CALL_AST_DID_CHANGE) {
+                astDidChange();
+              }
+    
+              // I'm confident that this value will not be null, based on the runtime checks above.
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              path.get('body').replaceWith(path.node.body.body[0].argument!);  
+            }
+          },
+          Literal(literalPath) {
+            // This tests to make sure that getPlugin is called for each file, and is not reused between files.
+            if (literalPath.node.type === 'StringLiteral') {
+              // This snippet works in the playground, but fails here. I don't know why.
+              // https://www.typescriptlang.org/play?#code/JYWwDg9gTgLgBDAnmApnA3gNWAZ2DaAXzgDMoIQ4ByAAQCMBDOlAGwHoYoGA3FKHFFQDcAKFCRYcAFRwGOOACEmrACrIU8shWr1l7JKhzCRIgCYoAxiwZQ0FiADsc8GAC4E6iCUV61h0SL2TvDc7th4BFAAPAwOiAB8cAC8GCJw6XAAMvh8DCwAFCw5XCwACgwwABYAlKkZ9XBFMLllFZUAdLZg1hYoAOr4lfkw7c5QwA4A5tnNJflUcqYkVNXVaRmEIoRAA
+              // @ts-expect-error
+              literalPath.replaceWith(t.stringLiteral(path.basename(filePath)));
+              literalPath.skip();
+            }
+          }
+        }
+      });
+  },
+  presets: ['@babel/preset-react', '@babel/preset-typescript', '@babel/preset-env']
+};
+
+export default codemod;",
+  "source/change-string-literal-0.js": "const a = 'replace with file name';",
+  "source/change-string-literal-1.js": "const a = 'replace with file name';",
+  "source/commented-out.js": "// const g = a => {
+//   return a?.b?.c?.d
+// };",
+  "source/optional-chaining.js": "const g = a => {
+  return a?.b?.c?.d
+};
+
+
+const C = <img />;
+const Empty = <div></div>;
+",
+  "source/recast-oddities.js": "#!/usr/bin/env node
+
+/* leading comment */
+const y = 1;
+
+let x = 1; /* trailing comment */
+
+/**
+ * I was previously seeing issues where this would transform \`return (\\n expr \\n)\` to \`return expr\`, but I'm not seeing
+ * that any more.
+ */
+function f() {
+  return (
+    true || false
+  )
+}
+
+// Will be erroneously transformed because of https://github.com/benjamn/recast/issues/914.
+const e = () => function(g, h) {
+  return i;
+};",
+  "source/ts.ts": "function g(
+  a: string,
+  b: number,
+  c: boolean
+) {
+  return 0;
+}
+
+const f = () => {
+  return 1
+};",
+  "tsconfig-no-root-dir.json": "{
+  "include": ["codemod/*.ts"],
+
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+
+    "outDir": "should-be-ignored",
+    
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+",
+}
+`;
+
+exports[`happy path prepend-string 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "/* prefix prepend string */
+console.log('a');",
+  "source/b.js": "/* prefix prepend string */
+function b() {}",
+  "source/blank.js": "/* prefix prepend string */
+",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path prepend-string 2`] = `"codemod post process ["<test-dir>/source/.dotfile.js","<test-dir>/source/a.js","<test-dir>/source/b.js","<test-dir>/source/blank.js"]"`;
+
+exports[`happy path prepend-string 3`] = `"resultMeta as passed to post process [["<test-dir>/source/.dotfile.js","meta for <test-dir>/source/.dotfile.js"],["<test-dir>/source/a.js","meta for <test-dir>/source/a.js"],["<test-dir>/source/b.js","meta for <test-dir>/source/b.js"],["<test-dir>/source/blank.js","meta for <test-dir>/source/blank.js"]]"`;
+
+exports[`happy path prepend-string 4`] = `"commandLineArgs {}"`;
+
+exports[`happy path prepend-string with piscina 1`] = `
+{
+  "codemod/codemod.js": "const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  ignore: [
+    /codemod-ignored/,
+    'input-file-list.txt',
+    'omitted-via-string-pattern'
+  ],
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  parseArgs: rawCommandLineArgs => ({rawCommandLineArgs}),
+  transform({source, commandLineArgs, filePath}) {
+    silenceableLog('commandLineArgs', JSON.stringify(commandLineArgs));
+    return {
+      meta: \`meta for \${filePath}\`,
+      code: \`/* prefix prepend string */\\n\${source}\`
+    };
+  }
+};",
+  "codemod/jscodeshift-codemod.js": "module.exports = ({source}) => \`/* prefix */\\n\${source}\`;",
+  "input-file-list.txt": "source/a.js
+source/codemod-ignored.js",
+  "source/a.js": "/* prefix prepend string */
+console.log('a');",
+  "source/b.js": "/* prefix prepend string */
+function b() {}",
+  "source/blank.js": "/* prefix prepend string */
+",
+  "source/codemod-ignored.js": "// codemod ignored",
+  "source/codemod-omitted-via-string-pattern.js": "// codemod ignored",
+}
+`;
+
+exports[`happy path prepend-string with piscina 2`] = `"codemod post process ["<test-dir>/source/.dotfile.js","<test-dir>/source/a.js","<test-dir>/source/b.js","<test-dir>/source/blank.js"]"`;
+
+exports[`happy path prepend-string with piscina 3`] = `"resultMeta as passed to post process [["<test-dir>/source/.dotfile.js","meta for <test-dir>/source/.dotfile.js"],["<test-dir>/source/a.js","meta for <test-dir>/source/a.js"],["<test-dir>/source/b.js","meta for <test-dir>/source/b.js"],["<test-dir>/source/blank.js","meta for <test-dir>/source/blank.js"]]"`;
+
+exports[`happy path prepend-string with piscina 4`] = `"commandLineArgs {}"`;
+
+exports[`happy path transform-all 1`] = `
+{
+  "codemod/codemod.js": "const fs = require('fs');
+const util = require('util');
+
+const silenceableLog = (...args) => {
+  if (process.env.SILENT === 'true') {
+    return;
+  }
+
+  console.log(...args);
+}
+
+module.exports = {
+  postProcess: (modifiedFiles, {resultMeta}) => {
+    silenceableLog('codemod post process', JSON.stringify(modifiedFiles));
+    silenceableLog('resultMeta as passed to post process', JSON.stringify([...resultMeta.entries()]));
+  },
+  async transformAll({fileNames}) {
+    for (const fileName of fileNames) {
+      await util.promisify(fs.rename)(fileName, \`\${fileName}.new\`)
+    }
+    return fileNames;
+  }
+};",
+  "source/a.js.new": "console.log('a');",
+  "source/b.js.new": "function b() {}",
+}
+`;
+
+exports[`happy path transform-all 2`] = `
+"🔨 Running postProcess for "2" modified files...
+codemod post process ["<test-dir>/source/a.js","<test-dir>/source/b.js"]
+resultMeta as passed to post process []
+✅ postProcess done."
+`;
+
+exports[`ignore files happy path 1`] = `
+{
+  "codemod-missing-ignore-file.js": "module.exports = {
+  transform() { 
+    return 'transformed';
+  },
+  ignoreFiles: ['does-not-exist.ignore']
+};",
+  "codemod.js": "const path = require('path');
+
+module.exports = {
+  transform() { 
+    return 'transformed';
+  },
+  ignoreFiles: [path.resolve(__dirname, 'root.ignore'), path.resolve(__dirname, 'dir-1/nested.ignore')]
+};",
+  "dir-1/dir-2/ignored-by-nested.txt": "",
+  "dir-1/dir-2/ignored-by-root.txt": "",
+  "dir-1/dir-2/transformed.txt": "transformed",
+  "dir-1/ignored-by-nested.txt": "",
+  "dir-1/ignored-by-root.txt": "",
+  "dir-1/nested.ignore": "../ignored-by-nested.txt
+ignored-by-nested.txt
+dir-2/ignored-by-nested.txt",
+  "dir-1/transformed.txt": "transformed",
+  "ignored-by-nested.txt": "",
+  "ignored-by-root.txt": "",
+  "root.ignore": "ignored-by-root.txt
+dir-1/ignored-by-root.txt
+dir-1/dir-2/ignored-by-root.txt",
+  "transformed.txt": "transformed",
+}
+`;
