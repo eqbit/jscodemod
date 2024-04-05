@@ -10,6 +10,7 @@ dotenv.config();
   const prompt2 = await promises.readFile('fixtures/instructions/2.md', 'utf8');
   const prompt3 = await promises.readFile('fixtures/instructions/3.md', 'utf8');
   const prompt4 = await promises.readFile('fixtures/instructions/4.md', 'utf8');
+  const prompt5 = await promises.readFile('fixtures/instructions/5.md', 'utf8');
   const input = await promises.readFile('fixtures/code/input.tsx', 'utf8');
   const messages = [
     { role: 'system', content: 'You are a TypeScript developer' },
@@ -17,6 +18,7 @@ dotenv.config();
     { role: 'user', content: prompt2 },
     { role: 'user', content: prompt3 },
     { role: 'user', content: prompt4 },
+    { role: 'user', content: prompt5 },
     { role: 'user', content: 'Now please perform this refactor for the following file:' },
     { role: 'user', content: input },
   ];
