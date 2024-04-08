@@ -4,4 +4,4 @@
 .buildt/
 .idea
 .env
-/fixtures/code/result/
+/code/

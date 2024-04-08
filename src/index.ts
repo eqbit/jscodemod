@@ -2,43 +2,75 @@ import { promises } from 'fs';
 import OpenAIClass from 'openai';
 import { ChatCompletionMessage } from 'openai/resources';
 import dotenv from 'dotenv';
+import { devLog, getCleanCode, getInputFilesFromDirectory } from './utils';
+import { sleep } from 'openai/core';
 
 dotenv.config();
 
 (async function main() {
-  const prompt1 = await promises.readFile('fixtures/instructions/1.md', 'utf8');
-  const prompt2 = await promises.readFile('fixtures/instructions/2.md', 'utf8');
-  const prompt3 = await promises.readFile('fixtures/instructions/3.md', 'utf8');
-  const prompt4 = await promises.readFile('fixtures/instructions/4.md', 'utf8');
-  const prompt5 = await promises.readFile('fixtures/instructions/5.md', 'utf8');
-  const input = await promises.readFile('fixtures/code/input.tsx', 'utf8');
-  const messages = [
-    { role: 'system', content: 'You are a TypeScript developer' },
-    { role: 'user', content: prompt1 },
-    { role: 'user', content: prompt2 },
-    { role: 'user', content: prompt3 },
-    { role: 'user', content: prompt4 },
-    { role: 'user', content: prompt5 },
-    { role: 'user', content: 'Now please perform this refactor for the following file:' },
-    { role: 'user', content: input },
-  ];
+  const [, , path] = process.argv;
+  const inputs = await getInputFilesFromDirectory(`${process.cwd()}/${path}`);
+
+  if (!inputs.length) {
+    devLog('No matching files, exiting');
+    return;
+  }
 
   const client = new OpenAIClass({
     organization: process.env.OPENAI_ORG_ID,
     apiKey: process.env.OPENAI_API_KEY,
   });
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4-0125-preview',
-    messages: messages as ChatCompletionMessage[],
-  });
+  let messages: { role: string; content: string }[] = [
+    { role: 'system', content: 'You are a TypeScript developer' },
+  ];
 
-  if (response.choices[0].message.content) {
-    const [scssCode, tsCode] = response.choices[0].message.content.split('// typescript');
+  for (let i = 1; i < 6; i++) {
+    messages.push({
+      role: 'user',
+      content: await promises.readFile(`instructions/${i}.md`, 'utf8'),
+    });
+  }
 
-    if (scssCode && tsCode) {
-      await promises.writeFile('fixtures/code/result/index.module.scss', `${scssCode.trim()}\n`);
-      await promises.writeFile('fixtures/code/result/index.tsx', `${tsCode.trim()}\n`);
+  let total = inputs.length;
+
+  devLog(`Total files to process: ${total}`);
+
+  for (const { path, fileName } of inputs) {
+    const input = await promises.readFile(`${path}/${fileName}.tsx`, 'utf8');
+
+    devLog(`Transforming ${path}/${fileName}`);
+
+    messages = [
+      ...messages,
+      {
+        role: 'user',
+        content: `In the typescript code you will generate,
+         please instead of "import styles from "./index.module.scss";"
+         use "import styles from "./${fileName}.module.scss";"`,
+      },
+      { role: 'user', content: 'Now please perform this refactor for the following file:' },
+      { role: 'user', content: input },
+    ];
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4-0125-preview',
+      messages: messages as ChatCompletionMessage[],
+    });
+
+    if (response.choices[0].message.content) {
+      const [scssCode, tsCode] = getCleanCode(response.choices[0].message.content);
+
+      if (scssCode && tsCode) {
+        await promises.writeFile(`${path}/${fileName}.module.scss`, scssCode);
+        await promises.writeFile(`${path}/${fileName}.tsx`, tsCode);
+      }
+    }
+
+    devLog('Done.', --total ? `${total} files left` : '');
+
+    if (total) {
+      await sleep(5000);
     }
   }
 })();

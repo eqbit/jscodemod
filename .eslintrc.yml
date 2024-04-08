@@ -15,7 +15,6 @@ rules:
   '@typescript-eslint/no-unused-vars': off
 
   'no-magic-numbers': off
-  '@typescript-eslint/no-magic-numbers': ["warn", {"ignoreReadonlyClassProperties": true, "ignore": [0, 1, 2], "ignoreTypeIndexes": true}]
 
   # I don't use @ts comments frivolously.
   '@typescript-eslint/ban-ts-comment': off
